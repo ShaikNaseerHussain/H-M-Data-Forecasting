@@ -370,9 +370,13 @@ def run_pipeline():
 
     # Confidence intervals based on test-set residual distribution
     test_residual_std = test_df['residual'].std()
-    # 80% CI ~ +/-1.28*std, 95% CI ~ +/-1.96*std
+    # 80% CI ~ +/-1.28*std, 95% CI ~ +/-1.96*std, 85% CI ~ +/-1.44*std, 90% CI ~ +/-1.64*std
     future_out['yhat_lower_80'] = (future_out['yhat'] - 1.28 * test_residual_std).clip(lower=0)
     future_out['yhat_upper_80'] = future_out['yhat'] + 1.28 * test_residual_std
+    future_out['yhat_lower_85'] = (future_out['yhat'] - 1.44 * test_residual_std).clip(lower=0)
+    future_out['yhat_upper_85'] = future_out['yhat'] + 1.44 * test_residual_std
+    future_out['yhat_lower_90'] = (future_out['yhat'] - 1.64 * test_residual_std).clip(lower=0)
+    future_out['yhat_upper_90'] = future_out['yhat'] + 1.64 * test_residual_std
     future_out['yhat_lower_95'] = (future_out['yhat'] - 1.96 * test_residual_std).clip(lower=0)
     future_out['yhat_upper_95'] = future_out['yhat'] + 1.96 * test_residual_std
 

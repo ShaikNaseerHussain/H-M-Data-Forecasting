@@ -5,7 +5,7 @@ import numpy as np
 import json
 import plotly.graph_objects as go
 
-st.set_page_config(page_title="Retail Demand Control Plane", page_icon="🛍️", layout="wide")
+st.set_page_config(page_title="H & M Data Forecasting", page_icon="🛍️", layout="wide")
 
 st.markdown("""
     <style>
@@ -26,7 +26,7 @@ raw_hist, metrics, test_preds, future_fc = load_data()
 
 st.sidebar.title("🎛️ Control Panel")
 forecast_days = st.sidebar.selectbox("Future Horizon", options=[7, 14, 30, 90], index=2)
-confidence_level = st.sidebar.select_slider("Confidence Band", options=["80%", "95%"], value="95%")
+confidence_level = st.sidebar.select_slider("Confidence Band", options=["80%", "85%", "90%", "95%"], value="95%")
 overlay_y2 = st.sidebar.toggle("Overlay Year 2 Ground Truth", value=True)
 
 tab_screen1, tab_screen2 = st.tabs(["📈 Executive Forecast Viewer", "🔬 Model Performance & Residuals"])
@@ -52,7 +52,7 @@ with tab_screen1:
         fig.add_trace(go.Scatter(x=test_preds["t_dat"], y=test_preds["transaction_count"], mode="lines", name="Year 2 Actuals", line=dict(color="#1f77b4", width=1.5)))
         fig.add_trace(go.Scatter(x=test_preds["t_dat"], y=test_preds["pred"], mode="lines", name="LightGBM Predictions", line=dict(color="#2ca02c", width=1.5, dash="dot")))
 
-    band_suffix = "95" if confidence_level == "95%" else "80"
+    band_suffix = confidence_level.replace("%", "")
     fig.add_trace(go.Scatter(x=subset_future["t_dat"], y=subset_future["yhat"], mode="lines+markers", name="Future Forecast", line=dict(color="#d62728", width=2.5)))
     fig.add_trace(go.Scatter(x=subset_future["t_dat"], y=subset_future[f"yhat_upper_{band_suffix}"], mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip"))
     fig.add_trace(go.Scatter(x=subset_future["t_dat"], y=subset_future[f"yhat_lower_{band_suffix}"], mode="lines", fill="tonexty", fillcolor="rgba(214, 39, 40, 0.15)", name=f"{confidence_level} CI", line=dict(width=0)))
