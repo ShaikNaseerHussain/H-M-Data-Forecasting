@@ -53,9 +53,41 @@ with tab_screen1:
         fig.add_trace(go.Scatter(x=test_preds["t_dat"], y=test_preds["pred"], mode="lines", name="LightGBM Predictions", line=dict(color="#2ca02c", width=1.5, dash="dot")))
 
     band_suffix = confidence_level.replace("%", "")
-    fig.add_trace(go.Scatter(x=subset_future["t_dat"], y=subset_future["yhat"], mode="lines+markers", name="Future Forecast", line=dict(color="#d62728", width=2.5)))
-    fig.add_trace(go.Scatter(x=subset_future["t_dat"], y=subset_future[f"yhat_upper_{band_suffix}"], mode="lines", line=dict(width=0), showlegend=False, hoverinfo="skip"))
-    fig.add_trace(go.Scatter(x=subset_future["t_dat"], y=subset_future[f"yhat_lower_{band_suffix}"], mode="lines", fill="tonexty", fillcolor="rgba(214, 39, 40, 0.15)", name=f"{confidence_level} CI", line=dict(width=0)))
+    fig.add_trace(go.Scatter(
+        x=subset_future["t_dat"], 
+        y=subset_future["yhat"], 
+        mode="lines+markers", 
+        name="Future Forecast", 
+        line=dict(color="#be2727", width=2.5),
+        hovertemplate="%{y:,.3f}"
+    ))
+    fig.add_trace(go.Scatter(
+        x=subset_future["t_dat"], 
+        y=subset_future[f"yhat_upper_{band_suffix}"], 
+        mode="lines", 
+        line=dict(width=0), 
+        showlegend=False, 
+        name="Upper Bound",
+        hovertemplate="%{y:,.3f}"
+    ))
+    fig.add_trace(go.Scatter(
+        x=subset_future["t_dat"], 
+        y=subset_future[f"yhat_lower_{band_suffix}"], 
+        mode="lines", 
+        fill="tonexty", 
+        fillcolor="rgba(214, 39, 40, 0.35)", 
+        name="Lower Bound", 
+        line=dict(width=0),
+        showlegend=False,
+        hovertemplate="%{y:,.3f}"
+    ))
+    fig.add_trace(go.Scatter(
+        x=[None], 
+        y=[None], 
+        mode="lines", 
+        name=f"{confidence_level} CI", 
+        line=dict(color="rgba(214, 39, 40, 0.35)", width=5)
+    ))
 
     fig.update_layout(title="Retail Demand Trajectory (Spike-Aware)", hovermode="x unified", height=550, template="plotly_white")
     st.plotly_chart(fig, use_container_width=True)
