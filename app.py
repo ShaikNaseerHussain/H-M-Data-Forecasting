@@ -28,11 +28,10 @@ st.sidebar.title("🎛️ Control Panel")
 forecast_days = st.sidebar.selectbox("Future Horizon", options=[7, 14, 30, 90], index=2)
 confidence_level = st.sidebar.select_slider("Confidence Band", options=["80%", "85%", "90%", "95%"], value="95%")
 overlay_y2 = st.sidebar.toggle("Overlay Year 2 Ground Truth", value=True)
-
+st.subheader("H & M Retail Demand Forecasting")
 tab_screen1, tab_screen2 = st.tabs(["📈 Executive Forecast Viewer", "🔬 Model Performance & Residuals"])
 
 with tab_screen1:
-    st.subheader("LightGBM Demand Overview")
     subset_future = future_fc.head(forecast_days)
     next_7_vol = int(future_fc.head(7)["yhat"].sum())
     peak_row = subset_future.loc[subset_future["yhat"].idxmax()]
