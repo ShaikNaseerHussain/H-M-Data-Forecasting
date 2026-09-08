@@ -1,0 +1,159 @@
+trigger:
+  - main
+
+variables:
+  azureSubscriptionConnection: 'AzureSubscriptionServiceConnection'
+  acrRegistryName: 'hmforecastacr.azurecr.io'
+  imageRepository: 'hm-retail-forecast-ui'
+  webAppName: 'hm-demand-control-plane'
+
+stages:
+- stage: QualityGate
+  jobs:
+  - job: ValidateModel
+    pool: { vmImage: 'ubuntu-latest' }
+    steps:
+    - task: UsePythonVersion@0
+      inputs: { versionSpec: '3.11' }
+    - script: |
+        pip install -r requirements.txt
+        python src/run_promo_forecast.py
+        python -c "import json; assert json.load(open('artifacts/evaluation_metrics.json'))['test']['WMAPE'] < 20.0"
+      displayName: 'Train & Validate Accuracy Gate'
+
+- stage: BuildAndPush
+  dependsOn: QualityGate
+  jobs:
+  - job: DockerBuild
+    pool: { vmImage: 'ubuntu-latest' }
+    steps:
+    - task: Docker@2
+      inputs:
+        command: buildAndPush
+        containerRegistry: '$(azureSubscriptionConnection)'
+        repository: '$(imageRepository)'
+        dockerfile: 'Dockerfile'
+        tags: '$(Build.BuildId)\nlatest'
+
+
+
+
+
+
+
+
+
+
+# trigger:
+#   - main
+
+# variables:
+#   azureSubscriptionConnection: 'AzureSubscriptionServiceConnection'
+#   acrRegistryName: 'hmforecastacr.azurecr.io'
+#   imageRepository: 'hm-retail-forecast-ui'
+#   webAppName: 'hm-demand-control-plane'
+#   tag: '$(Build.BuildId)'
+
+# stages:
+# # ----------------------------------------------------
+# # STAGE 1: Train Model & Validate Accuracy Gate
+# # ----------------------------------------------------
+# - stage: QualityGate
+#   displayName: 'Quality & Model Validation Gate'
+#   jobs:
+#   - job: ValidateModel
+#     pool:
+#       vmImage: 'ubuntu-latest'
+#     steps:
+#     - task: UsePythonVersion@0
+#       inputs:
+#         versionSpec: '3.11'
+
+#     - script: |
+#         python -m pip install --upgrade pip
+#         pip install -r requirements.txt
+#       displayName: 'Install Dependencies'
+
+#     - script: |
+#         python src/run_promo_forecast.py
+#       displayName: 'Run Pipeline & Generate Artifacts'
+
+#     - script: |
+#         python -c "
+#         import json
+#         with open('artifacts/evaluation_metrics.json') as f:
+#             metrics = json.load(f)
+#         wmape = metrics['test']['WMAPE']
+#         print(f'Test WMAPE: {wmape}%')
+#         assert wmape < 20.0, f'Gate Failed: Test WMAPE ({wmape}%) is above 20.0%'
+#         "
+#       displayName: 'Evaluate Accuracy Quality Gate'
+
+#     # Save generated artifacts so the next stage (Docker build) has access to them
+#     - task: PublishPipelineArtifact@1
+#       displayName: 'Publish Generated Artifacts'
+#       inputs:
+#         targetPath: '$(System.DefaultWorkingDirectory)/artifacts'
+#         artifact: 'model-artifacts'
+
+#     - task: PublishPipelineArtifact@1
+#       displayName: 'Publish Generated Data'
+#       inputs:
+#         targetPath: '$(System.DefaultWorkingDirectory)/data'
+#         artifact: 'model-data'
+
+# # ----------------------------------------------------
+# # STAGE 2: Build & Push Container to ACR
+# # ----------------------------------------------------
+# - stage: BuildAndPush
+#   displayName: 'Build and Push Docker Image'
+#   dependsOn: QualityGate
+#   condition: succeeded()
+#   jobs:
+#   - job: DockerBuild
+#     pool:
+#       vmImage: 'ubuntu-latest'
+#     steps:
+#     # Download the artifacts and data generated in Stage 1
+#     - task: DownloadPipelineArtifact@1
+#       displayName: 'Download Model Artifacts'
+#       inputs:
+#         artifact: 'model-artifacts'
+#         targetPath: '$(System.DefaultWorkingDirectory)/artifacts'
+
+#     - task: DownloadPipelineArtifact@1
+#       displayName: 'Download Model Data'
+#       inputs:
+#         artifact: 'model-data'
+#         targetPath: '$(System.DefaultWorkingDirectory)/data'
+
+#     # Build and push the container to ACR
+#     - task: Docker@2
+#       displayName: 'Build and Push Image to ACR'
+#       inputs:
+#         command: buildAndPush
+#         containerRegistry: '$(azureSubscriptionConnection)'
+#         repository: '$(imageRepository)'
+#         dockerfile: '$(System.DefaultWorkingDirectory)/Dockerfile'
+#         tags: |
+#           $(tag)
+#           latest
+
+# # ----------------------------------------------------
+# # STAGE 3: Deploy to Azure Web App for Containers
+# # ----------------------------------------------------
+# - stage: Deploy
+#   displayName: 'Deploy to Azure Web App'
+#   dependsOn: BuildAndPush
+#   condition: succeeded()
+#   jobs:
+#   - job: DeployWebApp
+#     pool:
+#       vmImage: 'ubuntu-latest'
+#     steps:
+#     - task: AzureWebAppContainer@1
+#       displayName: 'Deploy Container to Web App'
+#       inputs:
+#         azureSubscription: '$(azureSubscriptionConnection)'
+#         appName: '$(webAppName)'
+#         containers: '$(acrRegistryName)/$(imageRepository):$(tag)'
